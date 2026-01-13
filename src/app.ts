@@ -10,6 +10,7 @@ app.use(express.json());
 // MAIN ROUTE
 app.use("/api/v1", router);
 
+
 app.get("/", (req, res) => {
   res.send("Server running successfully");
 });
