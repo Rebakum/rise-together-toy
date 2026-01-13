@@ -1,12 +1,13 @@
+import { CategoryType, ProductStatus } from "@prisma/client";
+
 export interface IGetProductsQuery {
-  search?: string;
-  brandId?: string;
-  categoryId?: string;
-  status?: string;
-  page?: number | string;
-  limit?: number | string;
+  page?: string;
+  limit?: string;
   sortBy?: string;
-  sortOrder?: string;
+  sortOrder?: "asc" | "desc";
+  search?: string;
+  status?:ProductStatus ;
+  type?: CategoryType; // indoor | outdoor
 }
 
 export interface IOptions {

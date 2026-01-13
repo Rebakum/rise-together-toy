@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { productService } from "./productsServices";
+import { IGetProductsQuery } from "../../types/product";
+import { CategoryType, ProductStatus } from "@prisma/client";
 
 export const productsController = {
   createProduct: async (req: Request, res: Response) => {
@@ -12,13 +14,24 @@ export const productsController = {
   },
 
   getAllProducts: async (req: Request, res: Response) => {
-    try {
-      const products = await productService.getAllProducts();
-      res.json({ success: true, data: products });
-    } catch (error: any) {
-      res.status(400).json({ success: false, message: error.message });
-    }
-  },
+  try {
+    // Query parameters from search, filter, sort, pagination grouped into 'query' object
+    const query: IGetProductsQuery = {
+  search: (req.query.search as string) || "",
+  status: (req.query.status as ProductStatus ) || "active",
+  page: (req.query.page as string) || "1",
+  limit: (req.query.limit as string) || "10",
+  sortBy: (req.query.sortBy as string) || "createdAt",
+  sortOrder: (req.query.sortOrder as "asc" | "desc") || "desc",
+  type: (req.query.type as CategoryType )|| undefined
+};
+
+    const products = await productService.getAllProducts(query);
+    res.json({ success: true, data: products });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+ },
 
   getProductById: async (req: Request, res: Response) => {
     try {

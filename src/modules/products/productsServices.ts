@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import paginationSortingHelper from "../../helpers/paginationSortingHelper";
 import { prisma } from "../../lib/prisma";
 import { IGetProductsQuery, IPaginatedResult } from "../../types/product";
@@ -33,22 +34,42 @@ const createProduct = async (payload: any) => {
   });
 };
 
-const getAllProducts = async (query: IGetProductsQuery): Promise<IPaginatedResult<any>> => {
-  const { page, limit, skip, sortBy, sortOrder } = paginationSortingHelper(query);
+const getAllProducts = async (
+  query: IGetProductsQuery
+): Promise<IPaginatedResult<any>> => {
 
-  // Where condition
-  const where: any = {};
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationSortingHelper(query);
 
+  // Allowed sorting fields
+  const allowedSortFields = ["createdAt", "price", "name"];
+  const finalSortBy = allowedSortFields.includes(sortBy)
+    ? sortBy
+    : "createdAt";
+
+  // WHERE condition
+  const where: Prisma.ProductWhereInput = {};
+
+  //  SEARCH
   if (query.search) {
     where.OR = [
       { name: { contains: query.search, mode: "insensitive" } },
       { description: { contains: query.search, mode: "insensitive" } },
       { brand: { name: { contains: query.search, mode: "insensitive" } } },
-      { category: { name: { contains: query.search, mode: "insensitive" } } }, 
+      { category: { name: { contains: query.search, mode: "insensitive" } } },
+      
     ];
   }
 
-  if (query.status) where.status = query.status;
+  // STATUS FILTER
+  if (query.status ) {
+    where.status = query.status;
+  }
+
+  // TYPE FILTER (indoor / outdoor) 
+  if (query.type) {
+    where.category = {type:query.type};
+  }
 
   const [products, total] = await prisma.$transaction([
     prisma.product.findMany({
@@ -59,13 +80,14 @@ const getAllProducts = async (query: IGetProductsQuery): Promise<IPaginatedResul
         brand: true,
         category: true,
       },
-      orderBy: { [sortBy]: sortOrder },
+      orderBy: {
+        [finalSortBy]: sortOrder,
+      },
       skip,
       take: limit,
     }),
-    prisma.product.count({
-      where,
-    }),
+
+    prisma.product.count({ where }),
   ]);
 
   const totalPages = Math.ceil(total / limit);
@@ -80,6 +102,7 @@ const getAllProducts = async (query: IGetProductsQuery): Promise<IPaginatedResul
     },
   };
 };
+
 
 const getProductById = async (id: string) => {
   const product = await prisma.product.findUnique({
